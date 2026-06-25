@@ -1,80 +1,68 @@
-﻿# DividPy — Image Grid Cutter
+# Fracta — Image Grid & Resizer App
 
-> Divida imagens em partes de forma precisa, rapida e sem perda de qualidade.
+> Ajuste, redimensione e divida imagens em partes de forma precisa, rápida e sem perda de qualidade.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)
-![Pillow](https://img.shields.io/badge/Pillow-12.x-green?style=flat-square)
+![Pillow](https://img.shields.io/badge/Pillow-10.x%2B-green?style=flat-square)
 ![Plataforma](https://img.shields.io/badge/Plataforma-Windows-lightgrey?style=flat-square)
 
 ---
 
-## O que e o DividPy?
+## O que é o Fracta?
 
-O **DividPy** e um aplicativo desktop com interface grafica que permite cortar todas as imagens de uma pasta em partes iguais, seguindo um grid (grade) definido por voce — por exemplo, `2x2`, `3x4`, `5x1`, etc.
+O **Fracta** é um aplicativo desktop com interface gráfica moderna que oferece três ferramentas fundamentais para processamento de imagens em lote:
 
-Cada fatia e salva com o mesmo nome da imagem original, acrescido das coordenadas da grade no formato `nome-LinhaXColuna.extensao`.
+1. **Cortar Grid (Fatiar):** Divide todas as imagens de uma pasta em grades iguais (ex: `2x2`, `3x3`, `1x4`), ideal para carrosséis do Instagram ou fatiamento de mapas.
+2. **Canvas Fit (Ajustar Canvas):** Centraliza imagens dentro de uma moldura (canvas) de tamanho fixo (ex: `800x800`), escalando a imagem proporcionalmente até o limite do conteúdo interno (ex: `650xAuto` ou `Auto` para preenchimento livre), preservando fundo transparente ou aplicando cores sólidas (chromakey).
+3. **Redimensionar (Resize):** Redimensiona imagens mantendo a proporção original, definindo uma dimensão fixa e a outra automática (ex: `500xAuto` ou `Auto` para preenchimento livre).
 
-### Exemplo: grid 2x2
-
-```
-logo.png  -->  logo-1x1.png   logo-1x2.png
-               logo-2x1.png   logo-2x2.png
-```
+Cada imagem gerada é salva com um sufixo personalizável (por padrão `-fracta`) ou com as coordenadas de fatiamento.
 
 ---
 
 ## Funcionalidades
 
-- Interface grafica dark mode (sem necessidade de terminal)
-- Processamento em lote de toda uma pasta
-- Suporte a PNG com fundo transparente (RGBA preservado)
-- Suporte a JPG, WebP, BMP e TIFF
-- Maxima qualidade na exportacao (sem recompressao desnecessaria)
-- Barra de progresso e log em tempo real
-- Thread separada (UI nao trava durante o processamento)
-- Pasta de saida criada automaticamente se nao existir
+- Interface gráfica elegante em Dark Mode baseada em abas.
+- Três modos de operação: **Cortar Grid**, **Canvas Fit** e **Redimensionar**.
+- Processamento em lote de pastas inteiras de forma assíncrona (a UI não trava).
+- Preservação total de transparências (modo RGBA para PNGs).
+- Opção de cor de fundo sólida para formatos que não suportam transparência (como JPEG).
+- Controle de dimensões automáticas (**AUTO**) para redimensionamentos responsivos.
+- Barra de progresso visual e log detalhado em tempo real.
+- Exportação inteligente com qualidade máxima.
 
 ---
 
-## Formatos suportados
+## Formatos Suportados
 
-| Formato | Transparencia | Qualidade de saida          |
+| Formato | Transparência | Qualidade de Saída          |
 |---------|---------------|-----------------------------|
-| PNG     | Sim (RGBA)    | Sem compressao (nivel 0)    |
-| JPG     | Nao           | quality=100, subsampling=0  |
+| PNG     | Sim (RGBA)    | Sem compressão (nível 0)    |
+| JPG/JPEG| Não           | quality=100, subsampling=0  |
 | WebP    | Sim           | Lossless                    |
-| BMP     | Nao           | Sem perda                   |
+| BMP     | Não           | Sem perda                   |
 | TIFF    | Sim           | Sem perda                   |
 
 ---
 
-## Requisitos
+## Instalação
 
-- Python **3.10** ou superior
-- Pillow **10.0+**
-
----
-
-## Instalacao
-
-### 1. Clone ou baixe o projeto
+### 1. Navegue até a pasta do projeto
 
 ```powershell
-# Se usar Git:
-git clone https://github.com/seu-usuario/dividpy.git
-cd dividpy
-
-# Ou apenas copie a pasta do projeto para o seu computador
 cd C:\00_Projects\DividPy
 ```
 
-### 2. Crie o ambiente virtual
+*(Nota: O diretório físico do projeto local permanece `DividPy` ou pode ser renomeado pelo usuário para `fracta`)*
+
+### 2. Crie e ative o ambiente virtual
 
 ```powershell
 python -m venv .venv
+.venv\Scripts\activate
 ```
 
-### 3. Instale as dependencias
+### 3. Instale as dependências
 
 ```powershell
 .venv\Scripts\pip install -r requirements.txt
@@ -82,90 +70,53 @@ python -m venv .venv
 
 ---
 
-## Como usar
+## Como Usar
 
 ### Iniciando o aplicativo
 
 ```powershell
-.venv\Scripts\python grid_cutter.py
+.venv\Scripts\python main.py
 ```
 
-### Passo a passo na interface
+### Modos de Operação
+
+#### 1. Cortar Grid
+- Selecione a pasta de entrada e a pasta de saída.
+- Defina o número de linhas e colunas.
+- A nomenclatura gerada será `{nome-original}-{linha}x{coluna}.{extensao}`.
+
+#### 2. Canvas Fit
+- Selecione as pastas de entrada e saída.
+- Defina a dimensão do canvas externo (ex: `800`x`800`).
+- Defina a dimensão limite do conteúdo interno (ex: `650`x`650` ou use **AUTO** em um dos eixos).
+- Escolha a cor de fundo (transparente por padrão ou cores chromakey para JPEG).
+
+#### 3. Redimensionar
+- Defina a largura ou altura alvo e use o botão **AUTO** na outra dimensão para manter o aspecto original.
+
+---
+
+## Estrutura do Projeto
 
 ```
-1. Pasta de entrada
-   Clique em "Procurar" e selecione a pasta que contem as imagens.
-   (todas as imagens nessa pasta serao processadas)
-
-2. Pasta de saida
-   Clique em "Procurar" e escolha onde salvar as fatias.
-   Dica: uma subpasta "output" e sugerida automaticamente.
-
-3. Grid (Linhas x Colunas)
-   Defina o numero de linhas e colunas do grid.
-   O preview mostra quantas partes cada imagem sera dividida.
-
-   Exemplos:
-     2 x 2  =  4 partes por imagem
-     3 x 3  =  9 partes por imagem
-     1 x 4  =  4 fatias horizontais
-     4 x 1  =  4 fatias verticais
-
-4. Cortar Imagens
-   Clique no botao roxo para iniciar.
-   Acompanhe o progresso na barra e no log abaixo.
+Fracta/
+├── core/
+│   ├── constants.py       # Definições globais de extensões e qualidades
+│   ├── grid_cutter.py     # Lógica de fatiamento de imagens
+│   ├── canvas_fitter.py   # Lógica de enquadramento em canvas
+│   └── image_resizer.py   # Lógica de redimensionamento proporcional
+├── gui/
+│   ├── widgets/           # Componentes customizados da UI (Log, Progress, etc)
+│   ├── tabs/              # Abas correspondentes a cada recurso do app
+│   ├── theme.py           # Definição visual dark mode e estilos
+│   └── app.py             # Montagem da janela principal
+├── main.py                # Ponto de entrada do aplicativo
+├── requirements.txt       # Dependências (Pillow)
+└── README.md              # Documentação oficial
 ```
 
 ---
 
-## Nomenclatura dos arquivos de saida
-
-O padrao de nome segue o formato:
-
-```
-{nome-original}-{linha}x{coluna}.{extensao}
-```
-
-### Exemplos
-
-| Grid | Imagem original | Arquivos gerados                                         |
-|------|-----------------|----------------------------------------------------------|
-| 2x2  | banner.png      | banner-1x1.png, banner-1x2.png, banner-2x1.png, banner-2x2.png |
-| 1x3  | foto.jpg        | foto-1x1.jpg, foto-1x2.jpg, foto-1x3.jpg               |
-| 3x1  | icon.png        | icon-1x1.png, icon-2x1.png, icon-3x1.png               |
-
-> As coordenadas sempre seguem o padrao **Linha x Coluna**, contando a partir do canto superior esquerdo.
-
----
-
-## Estrutura do projeto
-
-```
-DividPy/
-├── .venv/               <- Ambiente virtual Python (nao versionar)
-├── grid_cutter.py       <- Codigo principal do aplicativo
-├── requirements.txt     <- Dependencias do projeto
-└── README.md            <- Este arquivo
-```
-
----
-
-## Perguntas frequentes
-
-**A imagem PNG com fundo transparente vai perder a transparencia?**
-Nao. O modo RGBA e preservado integralmente em todas as fatias.
-
-**O que acontece se as dimensoes nao forem divisiveis pelo grid?**
-A ultima linha e/ou coluna absorve os pixels restantes, sem perder nenhum pixel da imagem original.
-
-**Posso usar grids assimetricos como 3x7?**
-Sim. Qualquer combinacao de linhas e colunas maiores que 0 e valida.
-
-**As imagens originais sao modificadas?**
-Nao. O app apenas le as imagens e salva as fatias na pasta de saida. Os arquivos originais sao intocados.
-
----
-
-## Licenca
+## Licença
 
 MIT — livre para uso pessoal e comercial.
