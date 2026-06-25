@@ -4,12 +4,13 @@ from pathlib import Path
 import threading
 from gui.theme import Theme
 from gui.widgets.folder_row import FolderRow
-from core.image_resizer import process_resize_folder
+from gui.widgets.file_row import FileRow
+from core.image_resizer import ImageResizer
 
 class ResizeTab(tk.Frame):
     """
     Aba que implementa a interface e controle para a funcionalidade de Redimensionar Imagens.
-    Permite redimensionar em lote fixando um dos eixos e mantendo a proporção original.
+    Permite processamento em lote ou imagem unica mantendo proporcoes.
     """
     def __init__(self, parent, log_panel, progress_bar):
         super().__init__(parent, bg=Theme.CARD)
@@ -20,24 +21,59 @@ class ResizeTab(tk.Frame):
         self.container = tk.Frame(self, bg=Theme.CARD)
         self.container.pack(fill="both", expand=True, padx=20, pady=16)
 
-        # Seleção de pasta de entrada
-        self.input_row = FolderRow(
+        # 1. Seletor de Modo de Entrada (Lote vs Unidade)
+        self.mode_var = tk.StringVar(value="folder")
+
+        self.mode_frame = tk.Frame(self.container, bg=Theme.CARD)
+        self.mode_frame.pack(fill="x", pady=(0, 8))
+
+        tk.Label(
+            self.mode_frame, text="Modo de Entrada:",
+            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED
+        ).pack(side="left", padx=(0, 10))
+
+        self.radio_folder = tk.Radiobutton(
+            self.mode_frame, text="Pasta (Lote)", variable=self.mode_var,
+            value="folder", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
+            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
+            activeforeground=Theme.TEXT, command=self._update_input_mode
+        )
+        self.radio_folder.pack(side="left", padx=10)
+
+        self.radio_file = tk.Radiobutton(
+            self.mode_frame, text="Imagem Única", variable=self.mode_var,
+            value="file", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
+            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
+            activeforeground=Theme.TEXT, command=self._update_input_mode
+        )
+        self.radio_file.pack(side="left", padx=10)
+
+        # 2. Instancia seletores de entrada
+        self.input_folder_row = FolderRow(
             self.container, 
             label_text="Pasta de entrada:", 
             dialog_title="Selecionar Pasta de Entrada"
         )
-        self.input_row.pack(fill="x", pady=4)
-        self.input_row.var.trace_add("write", self._on_input_changed)
+        self.input_folder_row.var.trace_add("write", self._on_folder_input_changed)
 
-        # Seleção de pasta de saída
+        self.input_file_row = FileRow(
+            self.container, 
+            label_text="Imagem de entrada:", 
+            dialog_title="Selecionar Imagem de Entrada"
+        )
+        self.input_file_row.var.trace_add("write", self._on_file_input_changed)
+
+        # 3. Seleção de pasta de saída
         self.output_row = FolderRow(
             self.container, 
             label_text="Pasta de saida:", 
             dialog_title="Selecionar Pasta de Saida"
         )
-        self.output_row.pack(fill="x", pady=4)
 
-        # Configurações de tamanho alvo
+        # Define layout inicial
+        self._update_input_mode()
+
+        # Configurações adicionais
         dims_frame = tk.Frame(self.container, bg=Theme.CARD)
         dims_frame.pack(fill="x", pady=10)
 
@@ -51,7 +87,6 @@ class ResizeTab(tk.Frame):
         target_size_frame = tk.Frame(dims_frame, bg=Theme.CARD)
         target_size_frame.grid(row=0, column=1, sticky="w", padx=10, pady=4)
 
-        # Entrada de Largura Alvo
         self.width_var = tk.StringVar(value="500")
         self.width_entry = tk.Entry(
             target_size_frame, textvariable=self.width_var, width=6,
@@ -75,7 +110,6 @@ class ResizeTab(tk.Frame):
             bg=Theme.CARD, fg=Theme.ACCENT
         ).pack(side="left", padx=2)
 
-        # Entrada de Altura Alvo
         self.height_var = tk.StringVar(value="AUTO")
         self.height_entry = tk.Entry(
             target_size_frame, textvariable=self.height_var, width=6,
@@ -95,7 +129,6 @@ class ResizeTab(tk.Frame):
         self.height_cb.pack(side="left", padx=(4, 4))
         tk.Label(target_size_frame, text="px", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED).pack(side="left", padx=4)
 
-        # Configuração do Sufixo de Saída
         tk.Label(
             dims_frame, text="Sufixo de Saida:",
             font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED
@@ -112,14 +145,12 @@ class ResizeTab(tk.Frame):
         )
         self.suffix_entry.pack(side="left")
 
-        # Texto reativo explicativo (Preview do comportamento)
         self.preview_label = tk.Label(
             self.container, text="", font=Theme.FONT_LABEL,
             bg=Theme.CARD, fg=Theme.MUTED
         )
         self.preview_label.pack(anchor="w", pady=(8, 14))
 
-        # Adiciona traces para atualizar o preview
         self.width_var.trace_add("write", lambda *_: self._update_preview())
         self.height_var.trace_add("write", lambda *_: self._update_preview())
         self.width_auto.trace_add("write", lambda *_: self._update_preview())
@@ -145,19 +176,34 @@ class ResizeTab(tk.Frame):
         self.run_btn.bind("<Enter>", lambda _: self.run_btn.config(bg=Theme.ACCENT_HOV))
         self.run_btn.bind("<Leave>", lambda _: self.run_btn.config(bg=Theme.ACCENT))
 
-    def _on_input_changed(self, *args) -> None:
-        """Autopopula o campo de saída com a subpasta 'output'."""
-        in_dir = self.input_row.get()
+    def _update_input_mode(self) -> None:
+        """Altera a interface com base no modo de entrada ativo."""
+        self.input_folder_row.pack_forget()
+        self.input_file_row.pack_forget()
+        self.output_row.pack_forget()
+
+        if self.mode_var.get() == "folder":
+            self.input_folder_row.pack(fill="x", pady=6)
+        else:
+            self.input_file_row.pack(fill="x", pady=6)
+
+        self.output_row.pack(fill="x", pady=6)
+
+    def _on_folder_input_changed(self, *args) -> None:
+        in_dir = self.input_folder_row.get()
         if in_dir and not self.output_row.get():
             self.output_row.set(str(Path(in_dir) / "output"))
 
+    def _on_file_input_changed(self, *args) -> None:
+        in_file = self.input_file_row.get()
+        if in_file and not self.output_row.get():
+            self.output_row.set(str(Path(in_file).parent / "output"))
+
     @staticmethod
     def _validate_int_or_auto(value: str) -> bool:
-        """Validador para permitir inteiros positivos ou AUTO."""
         return value == "" or value == "AUTO" or (value.isdigit() and int(value) >= 0)
 
     def _toggle_width(self) -> None:
-        """Alterna a entrada da largura entre editável e AUTO."""
         if self.width_auto.get():
             self.width_entry.config(state="disabled")
             self.width_var.set("AUTO")
@@ -166,7 +212,6 @@ class ResizeTab(tk.Frame):
             self.width_var.set("500")
 
     def _toggle_height(self) -> None:
-        """Alterna a entrada da altura entre editável e AUTO."""
         if self.height_auto.get():
             self.height_entry.config(state="disabled")
             self.height_var.set("AUTO")
@@ -175,7 +220,6 @@ class ResizeTab(tk.Frame):
             self.height_var.set("500")
 
     def _update_preview(self) -> None:
-        """Atualiza a mensagem descritiva em tempo real com base nas opções da UI."""
         w_is_auto = self.width_auto.get()
         h_is_auto = self.height_auto.get()
 
@@ -205,21 +249,33 @@ class ResizeTab(tk.Frame):
             )
 
     def _start_processing(self) -> None:
-        """Inicia o processamento assíncrono de redimensionamento em lote."""
-        input_dir = self.input_row.get()
+        """Inicia o processamento na thread secundaria."""
+        mode = self.mode_var.get()
         output_dir = self.output_row.get()
 
-        if not input_dir:
-            messagebox.showwarning("Atenção", "Selecione a pasta de entrada.")
-            return
         if not output_dir:
             messagebox.showwarning("Atenção", "Selecione a pasta de saída.")
             return
-        if not Path(input_dir).is_dir():
-            messagebox.showerror("Erro", f"Pasta de entrada não encontrada:\n{input_dir}")
-            return
 
-        # Pega a largura alvo (None = AUTO)
+        if mode == "folder":
+            input_path = self.input_folder_row.get()
+            if not input_path:
+                messagebox.showwarning("Atenção", "Selecione a pasta de entrada.")
+                return
+            if not Path(input_path).is_dir():
+                messagebox.showerror("Erro", f"Pasta de entrada não encontrada:\n{input_path}")
+                return
+            target_method = "process_batch"
+        else:
+            input_path = self.input_file_row.get()
+            if not input_path:
+                messagebox.showwarning("Atenção", "Selecione a imagem de entrada.")
+                return
+            if not Path(input_path).is_file():
+                messagebox.showerror("Erro", f"Imagem de entrada não encontrada:\n{input_path}")
+                return
+            target_method = "process_single"
+
         target_w = None
         if not self.width_auto.get():
             try:
@@ -229,7 +285,6 @@ class ResizeTab(tk.Frame):
                 messagebox.showwarning("Atenção", "Informe uma largura alvo numérica válida maior que 0.")
                 return
 
-        # Pega a altura alvo (None = AUTO)
         target_h = None
         if not self.height_auto.get():
             try:
@@ -241,7 +296,7 @@ class ResizeTab(tk.Frame):
 
         suffix_pattern = self.suffix_var.get().strip()
 
-        # Desativa a UI e limpa logs
+        # Desativa a UI e limpa painel
         self.run_btn.config(state="disabled", text="Processando...")
         self.progress_bar.reset()
         self.log_panel.clear()
@@ -254,22 +309,25 @@ class ResizeTab(tk.Frame):
                 self.run_btn.config(state="normal", text="Redimensionar Imagens")
                 self.progress_bar.set_progress(100)
                 if success:
-                    messagebox.showinfo("Concluído", "Redimensionamento em lote concluído com sucesso!")
+                    messagebox.showinfo("Concluído", "Redimensionamento concluído com sucesso!")
             self.after(0, _ui_update)
 
-        # Roda na thread secundária
+        # Instancia o processador orientado a objetos
+        resizer = ImageResizer(
+            target_w=target_w,
+            target_h=target_h,
+            suffix_pattern=suffix_pattern,
+            log_fn=log_handler,
+            progress_fn=self.progress_bar.set_progress,
+            done_fn=completion_handler
+        )
+
+        target_fn = getattr(resizer, target_method)
+
+        # Dispara thread
         thread = threading.Thread(
-            target=process_resize_folder,
-            args=(
-                input_dir,
-                output_dir,
-                target_w,
-                target_h,
-                suffix_pattern,
-                log_handler,
-                self.progress_bar.set_progress,
-                completion_handler
-            ),
+            target=target_fn,
+            args=(input_path, output_dir),
             daemon=True
         )
         thread.start()

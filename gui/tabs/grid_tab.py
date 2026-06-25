@@ -4,11 +4,13 @@ from pathlib import Path
 import threading
 from gui.theme import Theme
 from gui.widgets.folder_row import FolderRow
-from core.grid_cutter import process_grid_folder
+from gui.widgets.file_row import FileRow
+from core.grid_cutter import GridCutter
 
 class GridTab(tk.Frame):
     """
     Aba que implementa a interface e controle para a funcionalidade de Cortar Grid.
+    Suporta fatiamento de pastas em lote ou de imagens unicas (por unidade).
     """
     def __init__(self, parent, log_panel, progress_bar):
         super().__init__(parent, bg=Theme.CARD)
@@ -19,22 +21,57 @@ class GridTab(tk.Frame):
         self.container = tk.Frame(self, bg=Theme.CARD)
         self.container.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Seleção de pasta de entrada
-        self.input_row = FolderRow(
+        # 1. Seletor de Modo de Entrada (Lote vs Unidade)
+        self.mode_var = tk.StringVar(value="folder")
+
+        self.mode_frame = tk.Frame(self.container, bg=Theme.CARD)
+        self.mode_frame.pack(fill="x", pady=(0, 8))
+
+        tk.Label(
+            self.mode_frame, text="Modo de Entrada:",
+            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED
+        ).pack(side="left", padx=(0, 10))
+
+        self.radio_folder = tk.Radiobutton(
+            self.mode_frame, text="Pasta (Lote)", variable=self.mode_var,
+            value="folder", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
+            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
+            activeforeground=Theme.TEXT, command=self._update_input_mode
+        )
+        self.radio_folder.pack(side="left", padx=10)
+
+        self.radio_file = tk.Radiobutton(
+            self.mode_frame, text="Imagem Única", variable=self.mode_var,
+            value="file", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
+            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
+            activeforeground=Theme.TEXT, command=self._update_input_mode
+        )
+        self.radio_file.pack(side="left", padx=10)
+
+        # 2. Instancia ambos os seletores de entrada
+        self.input_folder_row = FolderRow(
             self.container, 
             label_text="Pasta de entrada:", 
             dialog_title="Selecionar Pasta de Entrada"
         )
-        self.input_row.pack(fill="x", pady=6)
-        self.input_row.var.trace_add("write", self._on_input_changed)
+        self.input_folder_row.var.trace_add("write", self._on_folder_input_changed)
 
-        # Seleção de pasta de saída
+        self.input_file_row = FileRow(
+            self.container, 
+            label_text="Imagem de entrada:", 
+            dialog_title="Selecionar Imagem de Entrada"
+        )
+        self.input_file_row.var.trace_add("write", self._on_file_input_changed)
+
+        # 3. Seleção de pasta de saída (sempre visivel)
         self.output_row = FolderRow(
             self.container, 
             label_text="Pasta de saida:", 
             dialog_title="Selecionar Pasta de Saida"
         )
-        self.output_row.pack(fill="x", pady=6)
+
+        # Define layout inicial
+        self._update_input_mode()
 
         # Container de configurações adicionais (Grid)
         self.grid_config_frame = tk.Frame(self.container, bg=Theme.CARD)
@@ -101,11 +138,31 @@ class GridTab(tk.Frame):
         self.run_btn.bind("<Enter>", lambda _: self.run_btn.config(bg=Theme.ACCENT_HOV))
         self.run_btn.bind("<Leave>", lambda _: self.run_btn.config(bg=Theme.ACCENT))
 
-    def _on_input_changed(self, *args) -> None:
-        """Autopopula o campo de saída com a subpasta 'output'."""
-        in_dir = self.input_row.get()
+    def _update_input_mode(self) -> None:
+        """Altera dinamicamente os widgets de selecao conforme o modo de entrada."""
+        self.input_folder_row.pack_forget()
+        self.input_file_row.pack_forget()
+        self.output_row.pack_forget()
+
+        if self.mode_var.get() == "folder":
+            self.input_folder_row.pack(fill="x", pady=6)
+        else:
+            self.input_file_row.pack(fill="x", pady=6)
+
+        # Reposiciona o output sempre no final
+        self.output_row.pack(fill="x", pady=6)
+
+    def _on_folder_input_changed(self, *args) -> None:
+        """Autopopula o campo de saída com a subpasta 'output' da pasta selecionada."""
+        in_dir = self.input_folder_row.get()
         if in_dir and not self.output_row.get():
             self.output_row.set(str(Path(in_dir) / "output"))
+
+    def _on_file_input_changed(self, *args) -> None:
+        """Autopopula o campo de saída com a subpasta 'output' na pasta da imagem selecionada."""
+        in_file = self.input_file_row.get()
+        if in_file and not self.output_row.get():
+            self.output_row.set(str(Path(in_file).parent / "output"))
 
     @staticmethod
     def _validate_int(value: str) -> bool:
@@ -129,21 +186,15 @@ class GridTab(tk.Frame):
             self.preview_label.config(text="", fg=Theme.MUTED)
 
     def _start_processing(self) -> None:
-        """Inicia a operação de corte de grade de imagens em lote."""
-        input_dir = self.input_row.get()
+        """Inicia a operação de fatiamento (grade) na thread secundaria."""
+        mode = self.mode_var.get()
         output_dir = self.output_row.get()
 
-        # Validações dos campos de pastas e valores
-        if not input_dir:
-            messagebox.showwarning("Atenção", "Selecione a pasta de entrada.")
-            return
         if not output_dir:
             messagebox.showwarning("Atenção", "Selecione a pasta de saída.")
             return
-        if not Path(input_dir).is_dir():
-            messagebox.showerror("Erro", f"Pasta de entrada não encontrada:\n{input_dir}")
-            return
 
+        # Validação do grid
         rows_str = self.rows_var.get()
         cols_str = self.cols_var.get()
 
@@ -160,7 +211,6 @@ class GridTab(tk.Frame):
         self.log_panel.clear()
 
         def log_handler(msg):
-            # Garante que os logs rodem de forma segura na thread principal
             self.after(0, lambda m=msg: self.log_panel.write_log(m))
 
         def completion_handler(success):
@@ -168,21 +218,47 @@ class GridTab(tk.Frame):
                 self.run_btn.config(state="normal", text="Cortar Imagens")
                 self.progress_bar.set_progress(100)
                 if success:
-                    messagebox.showinfo("Concluído", "Todas as imagens foram cortadas com sucesso!")
+                    messagebox.showinfo("Concluído", "Processamento concluído com sucesso!")
             self.after(0, _ui_update)
+
+        # Instancia o processador orientado a objetos
+        cutter = GridCutter(
+            rows=rows,
+            cols=cols,
+            log_fn=log_handler,
+            progress_fn=self.progress_bar.set_progress,
+            done_fn=completion_handler
+        )
+
+        if mode == "folder":
+            input_path = self.input_folder_row.get()
+            if not input_path:
+                messagebox.showwarning("Atenção", "Selecione a pasta de entrada.")
+                self.run_btn.config(state="normal")
+                return
+            if not Path(input_path).is_dir():
+                messagebox.showerror("Erro", f"Pasta de entrada não encontrada:\n{input_path}")
+                self.run_btn.config(state="normal")
+                return
+            target_fn = cutter.process_batch
+            target_args = (input_path, output_dir)
+        else:
+            input_path = self.input_file_row.get()
+            if not input_path:
+                messagebox.showwarning("Atenção", "Selecione a imagem de entrada.")
+                self.run_btn.config(state="normal")
+                return
+            if not Path(input_path).is_file():
+                messagebox.showerror("Erro", f"Imagem de entrada não encontrada:\n{input_path}")
+                self.run_btn.config(state="normal")
+                return
+            target_fn = cutter.process_single
+            target_args = (input_path, output_dir)
 
         # Dispara thread assíncrona para não travar a GUI
         thread = threading.Thread(
-            target=process_grid_folder,
-            args=(
-                input_dir, 
-                output_dir, 
-                rows, 
-                cols, 
-                log_handler, 
-                self.progress_bar.set_progress, 
-                completion_handler
-            ),
+            target=target_fn,
+            args=target_args,
             daemon=True
         )
         thread.start()
