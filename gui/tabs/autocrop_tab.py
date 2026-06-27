@@ -122,10 +122,13 @@ class AutocropTab(tk.Frame):
         self.color_entry = tk.Entry(
             self.color_input_frame, textvariable=self.color_var, width=8,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
-            insertbackground=Theme.TEXT, relief="flat"
+            insertbackground=Theme.TEXT, relief="flat",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.color_entry.pack(side="left", padx=(0, 6))
         self.color_var.trace_add("write", self._on_color_hex_changed)
+
 
         self.color_preview = tk.Frame(self.color_input_frame, width=20, height=20, bg="#ffffff", bd=1, relief="solid")
         self.color_preview.pack(side="left")
@@ -195,19 +198,31 @@ class AutocropTab(tk.Frame):
         self.suffix_entry = tk.Entry(
             suffix_frame, textvariable=self.suffix_var, width=12,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
-            insertbackground=Theme.TEXT, relief="flat"
+            insertbackground=Theme.TEXT, relief="flat",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.suffix_entry.pack(side="left")
 
+
         # Mensagem informativa abaixo das configuracoes
+        # Mensagem informativa/preview dinâmico abaixo das configuracoes
         self.info_label = tk.Label(
-            self.container, text="-> Remove as margens vazias ao redor de imagens, diminuindo a largura e altura do canvas.",
+            self.container, text="",
             font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED
         )
         self.info_label.pack(anchor="w", pady=(8, 14))
 
+        # Adiciona traces para atualização do preview em tempo real
+        self.trim_mode_var.trace_add("write", lambda *_: self._update_preview())
+        self.color_var.trace_add("write", lambda *_: self._update_preview())
+        self.tolerance_var.trace_add("write", lambda *_: self._update_preview())
+        self.compress_var.trace_add("write", lambda *_: self._update_preview())
+        self._update_preview()
+
         # Atualiza a exibicao inicial dos elementos condicionais da UI
         self._update_trim_mode_ui()
+
 
         # 5. Botao de Executar
         self.action_frame = tk.Frame(self.container, bg=Theme.CARD)
@@ -259,6 +274,7 @@ class AutocropTab(tk.Frame):
             self.color_input_frame.grid(row=1, column=1, sticky="w", padx=10, pady=2)
         else:
             self.color_input_frame.grid_forget()
+        self._update_preview()
 
     def _on_color_hex_changed(self, *args) -> None:
         """Valida e atualiza a cor do quadrado de preview quando o hex e alterado."""
@@ -273,6 +289,27 @@ class AutocropTab(tk.Frame):
                 self.color_preview.config(bg=f"#{hex_val}")
             except Exception:
                 pass
+        self._update_preview()
+
+    def _update_preview(self) -> None:
+        """Atualiza a mensagem explicativa de preview em tempo real na aba de Autocrop."""
+        try:
+            mode = self.trim_mode_var.get()
+            tol = self.tolerance_var.get()
+            comp = self.compress_var.get()
+            
+            if mode == "auto":
+                desc = "automático (canto 0,0)"
+            elif mode == "transparency":
+                desc = "transparente"
+            else:
+                desc = f"sólido {self.color_var.get()}"
+                
+            msg = f"-> Cortará o fundo {desc} (tolerância: {tol}) | Compressão PNG: {comp}."
+            self.info_label.config(text=msg, fg=Theme.SUCCESS)
+        except Exception:
+            self.info_label.config(text="", fg=Theme.MUTED)
+
 
     def _start_processing(self) -> None:
         """Inicia o processamento assincrono do autocrop em uma thread secundaria."""

@@ -101,7 +101,9 @@ class CanvasTab(tk.Frame):
             canvas_size_frame, textvariable=self.canvas_w_var, width=6,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd
+            validate="key", validatecommand=vcmd,
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.canvas_w_entry.pack(side="left")
 
@@ -115,10 +117,13 @@ class CanvasTab(tk.Frame):
             canvas_size_frame, textvariable=self.canvas_h_var, width=6,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd
+            validate="key", validatecommand=vcmd,
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.canvas_h_entry.pack(side="left")
         tk.Label(canvas_size_frame, text="px", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED).pack(side="left", padx=4)
+
 
         # 2. Conteúdo Interno (Pode ser AUTO)
         tk.Label(
@@ -135,16 +140,20 @@ class CanvasTab(tk.Frame):
             inner_size_frame, textvariable=self.inner_w_var, width=6,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd
+            validate="key", validatecommand=vcmd,
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.inner_w_entry.pack(side="left")
 
         self.inner_w_auto = tk.BooleanVar(value=False)
         self.inner_w_cb = tk.Checkbutton(
             inner_size_frame, text="AUTO", variable=self.inner_w_auto,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT, command=self._toggle_inner_w
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=8, pady=3, bd=0,
+            command=self._toggle_inner_w
         )
         self.inner_w_cb.pack(side="left", padx=(4, 10))
 
@@ -159,16 +168,20 @@ class CanvasTab(tk.Frame):
             inner_size_frame, textvariable=self.inner_h_var, width=6,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd, state="disabled"
+            validate="key", validatecommand=vcmd, state="disabled",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.inner_h_entry.pack(side="left")
 
         self.inner_h_auto = tk.BooleanVar(value=True)
         self.inner_h_cb = tk.Checkbutton(
             inner_size_frame, text="AUTO", variable=self.inner_h_auto,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT, command=self._toggle_inner_h
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=8, pady=3, bd=0,
+            command=self._toggle_inner_h
         )
         self.inner_h_cb.pack(side="left", padx=(4, 4))
         tk.Label(inner_size_frame, text="px", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED).pack(side="left", padx=4)
@@ -194,15 +207,25 @@ class CanvasTab(tk.Frame):
         self.suffix_entry = tk.Entry(
             bg_suffix_frame, textvariable=self.suffix_var, width=10,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
-            insertbackground=Theme.TEXT, relief="flat"
+            insertbackground=Theme.TEXT, relief="flat",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.suffix_entry.pack(side="left")
+
 
         tk.Label(
             self.container, 
             text="* Nota: O ajuste funciona melhor com fundos lisos sólidos (como chromakey).",
             font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED
-        ).pack(anchor="w", pady=(2, 10))
+        ).pack(anchor="w", pady=(2, 4))
+
+        # Texto reativo de Preview Dinâmico
+        self.preview_label = tk.Label(
+            self.container, text="", font=Theme.FONT_LABEL,
+            bg=Theme.CARD, fg=Theme.MUTED
+        )
+        self.preview_label.pack(anchor="w", pady=(0, 10))
 
         # Botão de Ação
         self.action_frame = tk.Frame(self.container, bg=Theme.CARD)
@@ -222,6 +245,15 @@ class CanvasTab(tk.Frame):
         self.run_btn.pack(side="left")
         self.run_btn.bind("<Enter>", lambda _: self.run_btn.config(bg=Theme.ACCENT_HOV))
         self.run_btn.bind("<Leave>", lambda _: self.run_btn.config(bg=Theme.ACCENT))
+
+        # Traces para atualização do preview
+        self.canvas_w_var.trace_add("write", lambda *_: self._update_preview())
+        self.canvas_h_var.trace_add("write", lambda *_: self._update_preview())
+        self.bg_color_var.trace_add("write", lambda *_: self._update_preview())
+        self.inner_w_var.trace_add("write", lambda *_: self._update_preview())
+        self.inner_h_var.trace_add("write", lambda *_: self._update_preview())
+        self._update_preview()
+
 
     def _update_input_mode(self) -> None:
         """Altera a interface com base no modo selecionado (lote ou unitario)."""
@@ -257,6 +289,7 @@ class CanvasTab(tk.Frame):
         else:
             self.inner_w_entry.config(state="normal")
             self.inner_w_var.set("650")
+        self._update_preview()
 
     def _toggle_inner_h(self) -> None:
         if self.inner_h_auto.get():
@@ -265,6 +298,30 @@ class CanvasTab(tk.Frame):
         else:
             self.inner_h_entry.config(state="normal")
             self.inner_h_var.set("650")
+        self._update_preview()
+
+    def _update_preview(self) -> None:
+        """Atualiza o resumo textual em tempo real de acordo com os parametros de Canvas."""
+        try:
+            w = self.canvas_w_var.get() or "0"
+            h = self.canvas_h_var.get() or "0"
+            bg = self.bg_color_var.get()
+            
+            # Limite interno
+            if self.inner_w_auto.get() and self.inner_h_auto.get():
+                inner_str = "tamanho proporcional automático"
+            else:
+                iw = "AUTO" if self.inner_w_auto.get() else f"{self.inner_w_var.get()}px"
+                ih = "AUTO" if self.inner_h_auto.get() else f"{self.inner_h_var.get()}px"
+                inner_str = f"limite máximo de {iw}x{ih}"
+                
+            self.preview_label.config(
+                text=f"-> Moldura final: {w}x{h}px | Fundo: {bg} | Conteúdo: {inner_str}.",
+                fg=Theme.SUCCESS
+            )
+        except Exception:
+            self.preview_label.config(text="", fg=Theme.MUTED)
+
 
     def _start_processing(self) -> None:
         """Inicia o processamento assincrono do Canvas Fitter."""

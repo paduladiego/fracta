@@ -175,33 +175,37 @@ class CompressTab(tk.Frame):
 
         self.cb_fmt_orig = tk.Checkbutton(
             format_frame, text="Manter Original", variable=self.fmt_orig_var,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=12, pady=6, bd=0
         )
         self.cb_fmt_orig.pack(side="left", padx=(0, 10))
 
         self.cb_fmt_png = tk.Checkbutton(
             format_frame, text="PNG", variable=self.fmt_png_var,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=12, pady=6, bd=0
         )
         self.cb_fmt_png.pack(side="left", padx=10)
 
         self.cb_fmt_jpg = tk.Checkbutton(
             format_frame, text="JPEG", variable=self.fmt_jpg_var,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=12, pady=6, bd=0
         )
         self.cb_fmt_jpg.pack(side="left", padx=10)
 
         self.cb_fmt_webp = tk.Checkbutton(
             format_frame, text="WebP", variable=self.fmt_webp_var,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=12, pady=6, bd=0
         )
         self.cb_fmt_webp.pack(side="left", padx=10)
 
@@ -217,18 +221,20 @@ class CompressTab(tk.Frame):
         self.metadata_var = tk.BooleanVar(value=True)
         self.metadata_cb = tk.Checkbutton(
             options_frame, text="Remover Metadados (EXIF/ICC)", variable=self.metadata_var,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=12, pady=6, bd=0
         )
         self.metadata_cb.pack(side="left", padx=(0, 20))
 
         self.seo_var = tk.BooleanVar(value=True)
         self.seo_cb = tk.Checkbutton(
             options_frame, text="Nome de Arquivo Amigável (SEO)", variable=self.seo_var,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=12, pady=6, bd=0
         )
         self.seo_cb.pack(side="left", padx=10)
 
@@ -245,16 +251,32 @@ class CompressTab(tk.Frame):
         self.suffix_entry = tk.Entry(
             suffix_frame, textvariable=self.suffix_var, width=12,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
-            insertbackground=Theme.TEXT, relief="flat"
+            insertbackground=Theme.TEXT, relief="flat",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.suffix_entry.pack(side="left")
 
-        # Texto Informativo de Otimizacao
+
+        # Texto Informativo de Otimizacao/Preview
         self.info_label = tk.Label(
-            self.container, text="-> Otimiza arquivos reduzindo o tamanho em disco, ideal para melhorar a performance de sites.",
+            self.container, text="",
             font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED
         )
         self.info_label.pack(anchor="w", pady=(8, 14))
+
+        # Traces para atualizacao de preview
+        self.png_var.trace_add("write", lambda *_: self._update_preview())
+        self.jpeg_var.trace_add("write", lambda *_: self._update_preview())
+        self.webp_var.trace_add("write", lambda *_: self._update_preview())
+        self.fmt_orig_var.trace_add("write", lambda *_: self._update_preview())
+        self.fmt_png_var.trace_add("write", lambda *_: self._update_preview())
+        self.fmt_jpg_var.trace_add("write", lambda *_: self._update_preview())
+        self.fmt_webp_var.trace_add("write", lambda *_: self._update_preview())
+        self.metadata_var.trace_add("write", lambda *_: self._update_preview())
+        self.seo_var.trace_add("write", lambda *_: self._update_preview())
+        self._update_preview()
+
 
         # 5. Botao de Acao
         self.action_frame = tk.Frame(self.container, bg=Theme.CARD)
@@ -299,6 +321,28 @@ class CompressTab(tk.Frame):
         in_file = self.input_file_row.get()
         if in_file and not self.output_row.get():
             self.output_row.set(str(Path(in_file).parent / "output"))
+
+    def _update_preview(self) -> None:
+        """Atualiza o resumo explicativo em tempo real de acordo com os parametros de compressao."""
+        try:
+            formats = []
+            if self.fmt_orig_var.get(): formats.append("Original")
+            if self.fmt_png_var.get(): formats.append("PNG")
+            if self.fmt_jpg_var.get(): formats.append("JPEG")
+            if self.fmt_webp_var.get(): formats.append("WebP")
+            
+            formats_str = ", ".join(formats) if formats else "Nenhum selecionado"
+            
+            opts = []
+            if self.metadata_var.get(): opts.append("remover metadados")
+            if self.seo_var.get(): opts.append("ajustar nome para SEO")
+            opts_str = " + ".join(opts) if opts else "sem otimizações adicionais"
+            
+            msg = f"-> Exportará: {formats_str} | Otimizações: {opts_str}."
+            self.info_label.config(text=msg, fg=Theme.SUCCESS)
+        except Exception:
+            self.info_label.config(text="", fg=Theme.MUTED)
+
 
     def _start_processing(self) -> None:
         """Inicia a compressao das imagens de forma assincrona em thread secundaria."""

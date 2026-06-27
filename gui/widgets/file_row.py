@@ -24,7 +24,9 @@ class FileRow(tk.Frame):
         self.entry = tk.Entry(
             self, textvariable=self.var, font=Theme.FONT_MAIN,
             bg=Theme.SURFACE, fg=Theme.TEXT,
-            insertbackground=Theme.TEXT, relief="flat"
+            insertbackground=Theme.TEXT, relief="flat",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.entry.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=4)
         
@@ -36,6 +38,10 @@ class FileRow(tk.Frame):
             command=self._browse_file
         )
         self.browse_btn.pack(side="right", pady=4)
+        
+        # Binds para efeito hover
+        self.browse_btn.bind("<Enter>", lambda _: self.browse_btn.config(bg=Theme.ACCENT, fg="#ffffff"))
+        self.browse_btn.bind("<Leave>", lambda _: self.browse_btn.config(bg=Theme.SURFACE, fg=Theme.ACCENT))
 
     def _browse_file(self) -> None:
         """

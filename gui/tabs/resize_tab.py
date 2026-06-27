@@ -92,16 +92,20 @@ class ResizeTab(tk.Frame):
             target_size_frame, textvariable=self.width_var, width=6,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd
+            validate="key", validatecommand=vcmd,
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.width_entry.pack(side="left")
 
         self.width_auto = tk.BooleanVar(value=False)
         self.width_cb = tk.Checkbutton(
             target_size_frame, text="AUTO", variable=self.width_auto,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT, command=self._toggle_width
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=8, pady=3, bd=0,
+            command=self._toggle_width
         )
         self.width_cb.pack(side="left", padx=(4, 10))
 
@@ -115,16 +119,20 @@ class ResizeTab(tk.Frame):
             target_size_frame, textvariable=self.height_var, width=6,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd, state="disabled"
+            validate="key", validatecommand=vcmd, state="disabled",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.height_entry.pack(side="left")
 
         self.height_auto = tk.BooleanVar(value=True)
         self.height_cb = tk.Checkbutton(
             target_size_frame, text="AUTO", variable=self.height_auto,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT, command=self._toggle_height
+            font=Theme.FONT_LABEL, bg=Theme.SURFACE, fg=Theme.MUTED,
+            selectcolor=Theme.ACCENT, activebackground=Theme.ACCENT_HOV,
+            activeforeground="#ffffff", relief="flat", cursor="hand2",
+            indicatoron=False, padx=8, pady=3, bd=0,
+            command=self._toggle_height
         )
         self.height_cb.pack(side="left", padx=(4, 4))
         tk.Label(target_size_frame, text="px", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED).pack(side="left", padx=4)
@@ -141,7 +149,9 @@ class ResizeTab(tk.Frame):
         self.suffix_entry = tk.Entry(
             suffix_frame, textvariable=self.suffix_var, width=12,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
-            insertbackground=Theme.TEXT, relief="flat"
+            insertbackground=Theme.TEXT, relief="flat",
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.suffix_entry.pack(side="left")
 

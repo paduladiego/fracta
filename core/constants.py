@@ -19,3 +19,10 @@ SAVE_PARAMETERS = {
         "lossless": True     # Modo sem perdas para WebP
     }
 }
+
+# Configurações de Versionamento e Atualização Remota (Multi-plataforma)
+APP_VERSION = "1.0.0"
+UPDATE_JSON_URL = "https://apps.dula.one/fracta/version.json"
+
+
+

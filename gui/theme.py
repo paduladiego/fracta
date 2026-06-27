@@ -63,3 +63,21 @@ class Theme:
             background=[("selected", cls.CARD), ("active", cls.BG)],
             foreground=[("selected", cls.ACCENT), ("active", cls.TEXT)]
         )
+
+        # Configuração estética do Combobox (dropdown) no Dark Mode
+        style.configure(
+            "TCombobox",
+            fieldbackground=cls.SURFACE,
+            background=cls.CARD,
+            foreground=cls.TEXT,
+            bordercolor=cls.SURFACE,
+            lightcolor=cls.SURFACE,
+            darkcolor=cls.SURFACE,
+            arrowcolor=cls.ACCENT
+        )
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", cls.SURFACE), ("active", cls.SURFACE)],
+            background=[("readonly", cls.CARD), ("active", cls.CARD)],
+            foreground=[("readonly", cls.TEXT), ("active", cls.TEXT)]
+        )

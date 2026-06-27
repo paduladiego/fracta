@@ -90,7 +90,9 @@ class GridTab(tk.Frame):
             self.grid_config_frame, textvariable=self.rows_var, width=4,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd
+            validate="key", validatecommand=vcmd,
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.rows_entry.pack(side="left", padx=(10, 4))
 
@@ -104,7 +106,9 @@ class GridTab(tk.Frame):
             self.grid_config_frame, textvariable=self.cols_var, width=4,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
             insertbackground=Theme.TEXT, relief="flat",
-            validate="key", validatecommand=vcmd
+            validate="key", validatecommand=vcmd,
+            highlightthickness=1, highlightbackground="#2c2f3f",
+            highlightcolor=Theme.ACCENT
         )
         self.cols_entry.pack(side="left", padx=(4, 12))
 
