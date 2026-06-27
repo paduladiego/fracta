@@ -4,7 +4,7 @@ SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif
 # Parametros padrao de salvamento para garantir maxima qualidade por formato
 SAVE_PARAMETERS = {
     ".png": {
-        "compress_level": 0  # Sem compressao para manter qualidade maxima do PNG
+        "compress_level": 6  # Nível de compressão padrão (0 a 9) para PNG sem perdas
     },
     ".jpg": {
         "quality": 100,      # Qualidade maxima para JPEG

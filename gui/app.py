@@ -6,6 +6,8 @@ from gui.widgets.progress_bar import ProgressBar
 from gui.tabs.grid_tab import GridTab
 from gui.tabs.canvas_tab import CanvasTab
 from gui.tabs.resize_tab import ResizeTab
+from gui.tabs.autocrop_tab import AutocropTab
+from gui.tabs.compress_tab import CompressTab
 
 class FractaApp(tk.Tk):
     """
@@ -65,10 +67,14 @@ class FractaApp(tk.Tk):
         self.grid_tab = GridTab(notebook, self.log_panel, self.progress_bar)
         self.canvas_tab = CanvasTab(notebook, self.log_panel, self.progress_bar)
         self.resize_tab = ResizeTab(notebook, self.log_panel, self.progress_bar)
+        self.autocrop_tab = AutocropTab(notebook, self.log_panel, self.progress_bar)
+        self.compress_tab = CompressTab(notebook, self.log_panel, self.progress_bar)
 
         notebook.add(self.grid_tab, text="Cortar Grid")
         notebook.add(self.canvas_tab, text="Canvas Fit")
         notebook.add(self.resize_tab, text="Redimensionar")
+        notebook.add(self.autocrop_tab, text="Aparar Bordas")
+        notebook.add(self.compress_tab, text="Comprimir")
 
         # Posiciona Barra de Progresso e Log abaixo do Notebook
         self.progress_bar.pack(fill="x", pady=(0, 12))

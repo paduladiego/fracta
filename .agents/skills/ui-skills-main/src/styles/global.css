@@ -1,0 +1,85 @@
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/fira-mono/400.css";
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Neutral scale in Oklch */
+  --color-parchment-50: oklch(0.985 0 0);
+  --color-parchment-100: oklch(0.97 0 0);
+  --color-parchment-200: oklch(0.92 0 0);
+  --color-parchment-300: oklch(0.84 0 0);
+  --color-parchment-400: oklch(0.7 0 0);
+  --color-parchment-500: oklch(0.55 0 0);
+  --color-parchment-600: oklch(0.42 0 0);
+  --color-parchment-700: oklch(0.3 0 0);
+  --color-parchment-800: oklch(0.18 0 0);
+  --color-parchment-900: oklch(0.09 0 0);
+
+  --color-primary: var(--color-parchment-900);
+  --color-secondary: var(--color-parchment-600);
+  --color-tertiary: var(--color-parchment-400);
+}
+
+
+::selection {
+  background-color: oklch(0.84 0 0 / 0.5);
+  color: inherit;
+}
+
+.prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  background-color: var(--color-parchment-100);
+  font-weight: 500;
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+
+.prose :where(pre code):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  background-color: transparent;
+  padding: 0;
+  font-weight: inherit;
+}
+
+.prose :where(code):not( :where([class~="not-prose"], [class~="not-prose"] *))::before,
+.prose :where(code):not( :where([class~="not-prose"], [class~="not-prose"] *))::after {
+  content: "";
+}
+
+.prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose :where(li, p):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  overflow-wrap: anywhere;
+}
+
+.prose :where(pre):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  border: 0;
+  background: transparent;
+  overscroll-behavior-x: contain;
+}
+
+.prose :where(pre.astro-code):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  border: 0;
+  background-color: #24292e !important;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  overflow-y: hidden;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 100vmax #24292e;
+}
+
+.prose :where(pre.astro-code code):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  background: transparent;
+}
+
+.prose :where(pre.astro-code .line, pre.astro-code span):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  background: transparent !important;
+}

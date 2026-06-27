@@ -1,0 +1,158 @@
+---
+import { topics } from "../data/topics";
+import { agents } from "../data/agents";
+
+const currentYear = new Date().getFullYear();
+const coreTopics = topics.filter((topic) => topic.isDesignCore);
+const featuredTopics = coreTopics.slice(0, 6);
+const featuredAgentIds = [
+  "claude-code",
+  "cursor",
+  "openclaw",
+  "codex",
+  "github-copilot",
+];
+const featuredAgents = featuredAgentIds
+  .map((id) => agents.find((agent) => agent.id === id))
+  .filter((agent): agent is NonNullable<typeof agent> => Boolean(agent));
+type FooterLink = {
+  label: string;
+  href: string;
+  external?: boolean;
+};
+
+type FooterSection = {
+  title: string;
+  links: FooterLink[];
+};
+
+const footerSections: FooterSection[] = [
+  {
+    title: "Browse",
+    links: [
+      { label: "Home", href: "/" },
+      { label: "Skills", href: "/skills" },
+      { label: "Agents", href: "/agents" },
+      { label: "Registry", href: "/skills/registry.txt" },
+      { label: "llms.txt", href: "/llms.txt" },
+    ],
+  },
+  {
+    title: "Topics",
+    links: [
+      ...featuredTopics.map((topic) => ({
+        label: topic.label,
+        href: `/skills/${topic.slug}`,
+      })),
+      { label: "More topics", href: "/skills/topics" },
+    ],
+  },
+  {
+    title: "Agents",
+    links: [
+      ...featuredAgents.map((agent) => ({
+        label: agent.name,
+        href: `/agents/${agent.id}`,
+      })),
+      { label: "More agents", href: "/agents" },
+    ],
+  },
+  {
+    title: "Best skills",
+    links: [
+      {
+        label: "UI Skills Root",
+        href: "/skills/ibelick/ui-skills-root",
+      },
+      {
+        label: "Frontend Design",
+        href: "/skills/anthropics/frontend-design",
+      },
+      { label: "Baseline UI", href: "/skills/ibelick/baseline-ui" },
+      {
+        label: "UI/UX Pro Max",
+        href: "/skills/nextlevelbuilder/ui-ux-pro-max",
+      },
+      { label: "Design Lab", href: "/skills/0xdesign/design-lab" },
+      {
+        label: "Emil Design Eng",
+        href: "/skills/emilkowalski/emil-design-eng",
+      },
+      {
+        label: "Make Interfaces Feel Better",
+        href: "/skills/jakubkrehel/make-interfaces-feel-better",
+      },
+    ],
+  },
+  {
+    title: "More",
+    links: [
+      { label: "@ibelick", href: "https://x.com/Ibelick", external: true },
+      {
+        label: "GitHub",
+        href: "https://github.com/ibelick/ui-skills",
+        external: true,
+      },
+      {
+        label: "Studio",
+        href: "https://interfaceoffice.com/",
+        external: true,
+      },
+    ],
+  },
+];
+---
+
+<footer class="border-parchment-200 mt-32 border-t">
+  <div class="px-4 py-12 sm:px-8 sm:py-16">
+    <div class="mx-auto w-full max-w-3xl">
+      <div class="grid gap-12 text-base md:grid-cols-2 lg:grid-cols-5">
+        {
+          footerSections.map((section) => (
+            <div>
+              <h3 class="text-parchment-600 leading-snug font-medium">
+                {section.title}
+              </h3>
+              <ul class="mt-3 space-y-2 leading-snug">
+                {section.links.map((link) => (
+                  <li>
+                    <a
+                      href={link.href}
+                      target={link.external ? "_blank" : undefined}
+                      rel={link.external ? "noopener noreferrer" : undefined}
+                      title={link.label}
+                      aria-label={link.label}
+                      class="text-parchment-400 hover:text-parchment-900 block max-w-full truncate"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+
+      <div
+        class="border-parchment-200 text-parchment-400 mt-12 flex w-full justify-between border-t pt-12 text-base leading-snug"
+      >
+        <p>
+          ©{currentYear}
+          <a
+            href="https://interfaceoffice.com/"
+            target="_blank"
+            class="text-parchment-400 hover:text-parchment-900 transition-colors"
+            >Interface Office</a
+          >
+        </p>
+        <a
+          href="mailto:hello@interfaceoffice.com"
+          class="text-parchment-400 hover:text-parchment-900 transition-colors"
+        >
+          Work with us?
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
