@@ -117,6 +117,12 @@ Fracta/
 
 ---
 
+## Desenvolvido por
+
+Este projeto foi desenvolvido e é mantido pela **[Dula.One](https://dula.one)**.
+
+---
+
 ## Licença
 
 MIT — livre para uso pessoal e comercial.

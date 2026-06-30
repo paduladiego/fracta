@@ -1,5 +1,8 @@
+import os
+import sys
 import tkinter as tk
 from tkinter import ttk, messagebox
+from PIL import Image, ImageTk
 import webbrowser
 import threading
 from gui.theme import Theme
@@ -17,6 +20,18 @@ class FractaApp(tk.Tk):
     Janela principal do aplicativo Fracta.
     Controla o layout global, abas (Notebook), barra de progresso e painel de log unificados.
     """
+    @staticmethod
+    def resource_path(relative_path: str) -> str:
+        """
+        Retorna o caminho absoluto para recursos, lidando com caminhos temporarios
+        do PyInstaller (_MEIPASS) e desenvolvimento local.
+        """
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
+
     def __init__(self):
         super().__init__()
         self.title(f"Fracta v{APP_VERSION} — Image Grid & Resizer")
@@ -25,6 +40,25 @@ class FractaApp(tk.Tk):
         self.configure(bg=Theme.BG)
         self.resizable(True, True)
         
+        # Define o icone da barra de titulo do app (.ico no Windows, .png de fallback)
+        icon_path_ico = self.resource_path("assets/logo-fracta.ico")
+        icon_path_png = self.resource_path("assets/logo-fracta.png")
+        
+        icon_set = False
+        if os.path.exists(icon_path_ico):
+            try:
+                self.iconbitmap(default=icon_path_ico)
+                icon_set = True
+            except Exception:
+                pass
+                
+        if not icon_set and os.path.exists(icon_path_png):
+            try:
+                self.icon_img = ImageTk.PhotoImage(file=icon_path_png)
+                self.iconphoto(True, self.icon_img)
+            except Exception:
+                pass
+
         # Aplica estilos personalizados do tema para componentes ttk
         Theme.apply_styles(self)
         
@@ -46,14 +80,33 @@ class FractaApp(tk.Tk):
         header = tk.Frame(root_frame, bg=Theme.BG)
         header.pack(fill="x", pady=(0, 14))
         
-        title_label = tk.Label(
-            header, text="Fracta", font=Theme.FONT_TITLE,
-            bg=Theme.BG, fg=Theme.ACCENT
-        )
-        title_label.pack(side="left")
+        # Carrega e exibe o logo da Dula.One se existir
+        logo_path = self.resource_path("assets/logo-fracta.png")
+        logo_loaded = False
+        if os.path.exists(logo_path):
+            try:
+                logo_img = Image.open(logo_path)
+                aspect_ratio = logo_img.width / logo_img.height
+                logo_h = 36
+                logo_w = int(logo_h * aspect_ratio)
+                logo_img = logo_img.resize((logo_w, logo_h), Image.Resampling.LANCZOS)
+                self.logo_tk = ImageTk.PhotoImage(logo_img)
+                
+                logo_label = tk.Label(header, image=self.logo_tk, bg=Theme.BG)
+                logo_label.pack(side="left")
+                logo_loaded = True
+            except Exception:
+                pass
+
+        if not logo_loaded:
+            title_label = tk.Label(
+                header, text="Fracta", font=Theme.FONT_TITLE,
+                bg=Theme.BG, fg=Theme.ACCENT
+            )
+            title_label.pack(side="left")
         
         subtitle_label = tk.Label(
-            header, text="  Image Grid & Resizer", font=("Segoe UI", 12),
+            header, text=f"  v{APP_VERSION} — Image Grid & Resizer", font=("Segoe UI", 11),
             bg=Theme.BG, fg=Theme.MUTED
         )
         subtitle_label.pack(side="left", pady=(6, 0))
@@ -113,6 +166,17 @@ class FractaApp(tk.Tk):
         # Posiciona Barra de Progresso e Log abaixo do Container
         self.progress_bar.pack(fill="x", pady=(0, 12))
         self.log_panel.pack(fill="both", expand=True)
+
+        # Rodape com informacoes de autoria
+        footer_frame = tk.Frame(root_frame, bg=Theme.BG)
+        footer_frame.pack(fill="x", pady=(8, 0))
+        
+        footer_label = tk.Label(
+            footer_frame, text="Desenvolvido por Dula.One", font=("Segoe UI", 9, "italic"),
+            bg=Theme.BG, fg=Theme.MUTED, cursor="hand2"
+        )
+        footer_label.pack(side="right")
+        footer_label.bind("<Button-1>", lambda _: webbrowser.open("https://dula.one"))
 
         # Mensagem inicial no log
         self.log_panel.write_log(

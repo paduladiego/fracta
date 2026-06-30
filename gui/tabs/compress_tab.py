@@ -297,6 +297,34 @@ class CompressTab(tk.Frame):
         self.run_btn.bind("<Enter>", lambda _: self.run_btn.config(bg=Theme.ACCENT_HOV))
         self.run_btn.bind("<Leave>", lambda _: self.run_btn.config(bg=Theme.ACCENT))
 
+        # Traces para atualizar o estilo visual do chip (contraste de texto e fundo)
+        self.fmt_orig_var.trace_add("write", lambda *_: self._update_chip_styles())
+        self.fmt_png_var.trace_add("write", lambda *_: self._update_chip_styles())
+        self.fmt_jpg_var.trace_add("write", lambda *_: self._update_chip_styles())
+        self.fmt_webp_var.trace_add("write", lambda *_: self._update_chip_styles())
+        self.metadata_var.trace_add("write", lambda *_: self._update_chip_styles())
+        self.seo_var.trace_add("write", lambda *_: self._update_chip_styles())
+        self._update_chip_styles()
+
+    def _update_chip_styles(self) -> None:
+        """
+        Atualiza a cor de fundo e texto dos chips de acordo com o estado selecionado
+        para garantir contraste perfeito no Windows (evita texto cinza sobre roxo).
+        """
+        chips = [
+            (self.cb_fmt_orig, self.fmt_orig_var),
+            (self.cb_fmt_png, self.fmt_png_var),
+            (self.cb_fmt_jpg, self.fmt_jpg_var),
+            (self.cb_fmt_webp, self.fmt_webp_var),
+            (self.metadata_cb, self.metadata_var),
+            (self.seo_cb, self.seo_var)
+        ]
+        for cb, var in chips:
+            if var.get():
+                cb.config(bg=Theme.ACCENT, fg="#ffffff")
+            else:
+                cb.config(bg=Theme.SURFACE, fg=Theme.MUTED)
+
     def _update_input_mode(self) -> None:
         """Altera a interface com base no modo de entrada ativo."""
         self.input_folder_row.pack_forget()

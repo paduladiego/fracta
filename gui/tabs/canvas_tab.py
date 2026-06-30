@@ -252,6 +252,12 @@ class CanvasTab(tk.Frame):
         self.bg_color_var.trace_add("write", lambda *_: self._update_preview())
         self.inner_w_var.trace_add("write", lambda *_: self._update_preview())
         self.inner_h_var.trace_add("write", lambda *_: self._update_preview())
+        
+        # Traces para atualizar o estilo visual dos chips AUTO (contraste de texto e fundo)
+        self.inner_w_auto.trace_add("write", lambda *_: self._update_chip_styles())
+        self.inner_h_auto.trace_add("write", lambda *_: self._update_chip_styles())
+        self._update_chip_styles()
+        
         self._update_preview()
 
 
@@ -414,10 +420,20 @@ class CanvasTab(tk.Frame):
 
         target_fn = getattr(fitter, target_method)
 
-        # Dispara thread
         thread = threading.Thread(
             target=target_fn,
             args=(input_path, output_dir),
             daemon=True
         )
         thread.start()
+
+    def _update_chip_styles(self) -> None:
+        """
+        Atualiza a cor de fundo e texto dos chips AUTO de acordo com o estado selecionado
+        para garantir contraste perfeito no Windows (evita texto cinza sobre roxo).
+        """
+        for cb, var in [(self.inner_w_cb, self.inner_w_auto), (self.inner_h_cb, self.inner_h_auto)]:
+            if var.get():
+                cb.config(bg=Theme.ACCENT, fg="#ffffff")
+            else:
+                cb.config(bg=Theme.SURFACE, fg=Theme.MUTED)

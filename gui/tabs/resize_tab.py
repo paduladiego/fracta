@@ -186,6 +186,11 @@ class ResizeTab(tk.Frame):
         self.run_btn.bind("<Enter>", lambda _: self.run_btn.config(bg=Theme.ACCENT_HOV))
         self.run_btn.bind("<Leave>", lambda _: self.run_btn.config(bg=Theme.ACCENT))
 
+        # Traces para atualizar o estilo visual dos chips AUTO (contraste de texto e fundo)
+        self.width_auto.trace_add("write", lambda *_: self._update_chip_styles())
+        self.height_auto.trace_add("write", lambda *_: self._update_chip_styles())
+        self._update_chip_styles()
+
     def _update_input_mode(self) -> None:
         """Altera a interface com base no modo de entrada ativo."""
         self.input_folder_row.pack_forget()
@@ -341,3 +346,14 @@ class ResizeTab(tk.Frame):
             daemon=True
         )
         thread.start()
+
+    def _update_chip_styles(self) -> None:
+        """
+        Atualiza a cor de fundo e texto dos chips AUTO de acordo com o estado selecionado
+        para garantir contraste perfeito no Windows (evita texto cinza sobre roxo).
+        """
+        for cb, var in [(self.width_cb, self.width_auto), (self.height_cb, self.height_auto)]:
+            if var.get():
+                cb.config(bg=Theme.ACCENT, fg="#ffffff")
+            else:
+                cb.config(bg=Theme.SURFACE, fg=Theme.MUTED)
