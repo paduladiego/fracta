@@ -6,11 +6,13 @@ from core.constants import SUPPORTED_EXTENSIONS
 class FileRow(tk.Frame):
     """
     Componente visual reutilizavel similar ao FolderRow, mas configurado para
-    a seleção de um arquivo de imagem individual (unidade) utilizando filtros de formato.
+    a seleção de um arquivo individual utilizando filtros de formato customizáveis.
     """
-    def __init__(self, parent, label_text: str, dialog_title: str):
+    def __init__(self, parent, label_text: str, dialog_title: str, file_extensions: set[str] = None, filetypes_label: str = "Imagens Suportadas"):
         super().__init__(parent, bg=Theme.CARD)
         self.dialog_title = dialog_title
+        self.file_extensions = file_extensions if file_extensions is not None else SUPPORTED_EXTENSIONS
+        self.filetypes_label = filetypes_label
         
         self.var = tk.StringVar()
         
@@ -45,13 +47,13 @@ class FileRow(tk.Frame):
 
     def _browse_file(self) -> None:
         """
-        Abre o dialogo do sistema para seleção de uma unica imagem,
-        filtrando pelas extensoes suportadas declaradas nas constantes.
+        Abre o dialogo do sistema para seleção de um unico arquivo,
+        filtrando pelas extensoes configuradas.
         """
         # Formata o filtro de extensoes do Tkinter dinamicamente
-        extensions_pattern = " ".join(f"*{ext}" for ext in SUPPORTED_EXTENSIONS)
+        extensions_pattern = " ".join(f"*{ext}" for ext in self.file_extensions)
         filetypes = [
-            ("Imagens Suportadas", extensions_pattern),
+            (self.filetypes_label, extensions_pattern),
             ("Todos os arquivos", "*.*")
         ]
         
@@ -69,3 +71,4 @@ class FileRow(tk.Frame):
     def set(self, value: str) -> None:
         """Define o caminho do arquivo de imagem."""
         self.var.set(value)
+

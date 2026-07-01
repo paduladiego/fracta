@@ -1,6 +1,9 @@
 # Extensoes de imagem suportadas pelo aplicativo
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"}
 
+# Extensoes de video suportadas pelo aplicativo
+SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".mkv", ".mov", ".avi", ".webm", ".flv", ".wmv"}
+
 # Parametros padrao de salvamento para garantir maxima qualidade por formato
 SAVE_PARAMETERS = {
     ".png": {
