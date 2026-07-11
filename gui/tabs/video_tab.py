@@ -18,6 +18,7 @@ class VideoTab(tk.Frame):
         self.log_panel = log_panel
         self.progress_bar = progress_bar
         self.processor = None
+        self.processing = False
 
         # Container interno com margens de padding
         self.container = tk.Frame(self, bg=Theme.CARD)
@@ -150,7 +151,8 @@ class VideoTab(tk.Frame):
         qualities = [
             ("Alta Qualidade", "high"),
             ("Balanceado", "balanced"),
-            ("Tamanho Mínimo (Web)", "low")
+            ("Tamanho Mínimo (Web)", "low"),
+            ("Super Compressão (Agressivo)", "very_low")
         ]
 
         for text, val in qualities:
@@ -248,6 +250,8 @@ class VideoTab(tk.Frame):
 
     def _update_preview(self) -> None:
         """Atualiza a mensagem informativa em tempo real."""
+        if hasattr(self, 'processing') and self.processing:
+            return
         try:
             fmt = self.format_var.get()
             res = self.resolution_var.get()
@@ -256,7 +260,14 @@ class VideoTab(tk.Frame):
 
             # Mapeia termos para exibicao
             res_str = "Resolução Original" if res == "original" else f"Reescala para {res}"
-            qual_str = "Bitrate Baixo (Alta Compressão)" if qual == "low" else ("Bitrate Alto (Qualidade Máxima)" if qual == "high" else "Bitrate Médio (Balanceado)")
+            if qual == "low":
+                qual_str = "Bitrate Baixo (Alta Compressão)"
+            elif qual == "very_low":
+                qual_str = "Bitrate Mínimo (Super Compressão)"
+            elif qual == "high":
+                qual_str = "Bitrate Alto (Qualidade Máxima)"
+            else:
+                qual_str = "Bitrate Médio (Balanceado)"
             audio_str = " | Sem Áudio (Mudo)" if no_audio else ""
             codec_str = "H.264/AAC" if fmt == ".mp4" else "VP9/Opus"
 
@@ -311,25 +322,37 @@ class VideoTab(tk.Frame):
         remove_audio = self.audio_var.get()
 
         # Desativa a UI e reinicia log/progresso
-        self.run_btn.config(state="disabled", text="Processando Vídeo...")
+        self.processing = True
+        self.run_btn.config(state="disabled", text="Comprimindo Vídeo... ⏳")
         self.progress_bar.reset()
         self.log_panel.clear()
 
         def log_handler(msg):
             self.after(0, lambda m=msg: self.log_panel.write_log(m))
 
+        def status_handler(status_msg):
+            # Atualiza o status textual em tempo real no info_label
+            self.after(0, lambda: self.info_label.config(text=f"⏳ {status_msg}", fg=Theme.ACCENT))
+
         def completion_handler(success):
             def _ui_update():
+                self.processing = False
                 self.run_btn.config(state="normal", text="Comprimir Vídeos")
                 self.progress_bar.set_progress(100)
                 if success:
+                    self.info_label.config(text="✨ Processamento concluído com sucesso!", fg=Theme.SUCCESS)
                     messagebox.showinfo("Concluído", "Compressão de vídeo concluída com sucesso!")
+                else:
+                    self.info_label.config(text="❌ Falha no processamento do vídeo.", fg=Theme.WARNING)
+                # Restaura o preview original de configurações após 5 segundos
+                self.after(5000, self._update_preview)
             self.after(0, _ui_update)
 
         self.processor = VideoProcessor(
             log_fn=log_handler,
             progress_fn=self.progress_bar.set_progress,
-            done_fn=completion_handler
+            done_fn=completion_handler,
+            status_fn=status_handler
         )
 
         target_fn = getattr(self.processor, target_method)

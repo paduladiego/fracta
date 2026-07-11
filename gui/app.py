@@ -12,8 +12,11 @@ from gui.tabs.grid_tab import GridTab
 from gui.tabs.canvas_tab import CanvasTab
 from gui.tabs.resize_tab import ResizeTab
 from gui.tabs.autocrop_tab import AutocropTab
+from gui.tabs.remove_bg_tab import RemoveBgTab
 from gui.tabs.compress_tab import CompressTab
 from gui.tabs.video_tab import VideoTab
+from gui.tabs.image_metadata_tab import ImageMetadataTab
+from gui.tabs.video_metadata_tab import VideoMetadataTab
 from core.constants import APP_VERSION
 
 class FractaApp(tk.Tk):
@@ -192,36 +195,31 @@ class FractaApp(tk.Tk):
         self.canvas_tab = CanvasTab(self.tab_container, self.log_panel, self.progress_bar)
         self.resize_tab = ResizeTab(self.tab_container, self.log_panel, self.progress_bar)
         self.autocrop_tab = AutocropTab(self.tab_container, self.log_panel, self.progress_bar)
+        self.remove_bg_tab = RemoveBgTab(self.tab_container, self.log_panel, self.progress_bar)
         self.compress_tab = CompressTab(self.tab_container, self.log_panel, self.progress_bar)
         self.video_tab = VideoTab(self.tab_container, self.log_panel, self.progress_bar)
+        self.image_metadata_tab = ImageMetadataTab(self.tab_container, self.log_panel, self.progress_bar)
+        self.video_metadata_tab = VideoMetadataTab(self.tab_container, self.log_panel, self.progress_bar)
 
-        # Configura o mapeamento das abas
-        self.tabs = {
+        # Dicionario de abas do ambiente de Imagens
+        self.image_tabs = {
             "grid": (self.grid_tab, "Cortar Grid"),
             "canvas": (self.canvas_tab, "Canvas Fit"),
             "resize": (self.resize_tab, "Redimensionar"),
             "autocrop": (self.autocrop_tab, "Aparar Bordas"),
-            "compress": (self.compress_tab, "Comprimir")
+            "remove_bg": (self.remove_bg_tab, "Remover Fundo"),
+            "compress": (self.compress_tab, "Comprimir"),
+            "image_metadata": (self.image_metadata_tab, "Metadados")
         }
 
-        # Cria os botões da barra de navegação estilo cápsula
-        self.nav_buttons = {}
-        for key, (_, title) in self.tabs.items():
-            btn = tk.Button(
-                self.nav_frame, text=title, font=Theme.FONT_BOLD,
-                bg=Theme.SURFACE, fg=Theme.MUTED, activebackground=Theme.SURFACE,
-                activeforeground=Theme.TEXT, relief="flat", cursor="hand2",
-                padx=16, pady=6, bd=0,
-                command=lambda k=key: self._select_tab(k)
-            )
-            btn.pack(side="left", padx=(0, 8))
-            # Binds para feedback de hover nos botões inativos
-            btn.bind("<Enter>", lambda _, b=btn, k=key: self._on_tab_hover(b, k, True))
-            btn.bind("<Leave>", lambda _, b=btn, k=key: self._on_tab_hover(b, k, False))
-            self.nav_buttons[key] = btn
+        # Dicionario de abas do ambiente de Vídeos
+        self.video_tabs = {
+            "video_compress": (self.video_tab, "Comprimir Vídeo"),
+            "video_metadata": (self.video_metadata_tab, "Metadados")
+        }
 
-        # Seleciona a aba padrão na inicialização
-        self._select_tab("grid")
+        # Inicializa a Navbar dinâmica para o ambiente de Imagens
+        self._rebuild_navbar(self.image_tabs, "grid")
 
         # Posiciona Barra de Progresso e Log abaixo do Container
         self.progress_bar.pack(fill="x", pady=(0, 12))
@@ -284,20 +282,50 @@ class FractaApp(tk.Tk):
         if ans:
             webbrowser.open(download_url)
 
+    def _rebuild_navbar(self, tab_dict: dict, default_tab: str) -> None:
+        """
+        Reconstroi os botoes da Navbar de acordo com o dicionario de abas fornecido.
+        """
+        # Destroi os botoes antigos da nav_frame
+        for widget in self.nav_frame.winfo_children():
+            widget.destroy()
+            
+        self.nav_buttons = {}
+        # Mapeia as abas ativas para o switch de tabs
+        self.active_tabs_map = tab_dict
+        
+        for key, (_, title) in tab_dict.items():
+            btn = tk.Button(
+                self.nav_frame, text=title, font=Theme.FONT_BOLD,
+                bg=Theme.SURFACE, fg=Theme.MUTED, activebackground=Theme.SURFACE,
+                activeforeground=Theme.TEXT, relief="flat", cursor="hand2",
+                padx=16, pady=6, bd=0,
+                command=lambda k=key: self._select_tab(k)
+            )
+            btn.pack(side="left", padx=(0, 8))
+            
+            # Hover binds
+            btn.bind("<Enter>", lambda _, b=btn, k=key: self._on_tab_hover(b, k, True))
+            btn.bind("<Leave>", lambda _, b=btn, k=key: self._on_tab_hover(b, k, False))
+            self.nav_buttons[key] = btn
+            
+        # Seleciona a aba padrao
+        self._select_tab(default_tab)
+
     def _select_tab(self, tab_key: str) -> None:
         """
         Alterna a visibilidade das abas e destaca o botão ativo na Navbar.
         """
         self.active_tab = tab_key
         
-        # Oculta todos os frames das abas e restaura o estilo padrão dos botões
-        for key, (tab_frame, _) in self.tabs.items():
+        # Oculta todos os frames das abas ativas e restaura o estilo padrão dos botões
+        for key, (tab_frame, _) in self.active_tabs_map.items():
             tab_frame.pack_forget()
             btn = self.nav_buttons[key]
             btn.config(bg=Theme.SURFACE, fg=Theme.MUTED)
             
         # Mostra o frame correspondente à aba ativa e pinta o botão de roxo
-        active_frame, _ = self.tabs[tab_key]
+        active_frame, _ = self.active_tabs_map[tab_key]
         active_frame.pack(fill="both", expand=True)
         
         active_btn = self.nav_buttons[tab_key]
@@ -321,30 +349,29 @@ class FractaApp(tk.Tk):
         """
         self.env_var.set(env)
         
+        # Oculta todas as abas de ambos os ambientes para garantir transicao limpa
+        if hasattr(self, 'image_tabs'):
+            for key, (tab_frame, _) in self.image_tabs.items():
+                tab_frame.pack_forget()
+        if hasattr(self, 'video_tabs'):
+            for key, (tab_frame, _) in self.video_tabs.items():
+                tab_frame.pack_forget()
+            
         if env == "images":
-            # Atualiza botoes
+            # Atualiza botoes de ambiente
             self.env_img_btn.config(bg=Theme.ACCENT, fg="#ffffff")
             self.env_vid_btn.config(bg=Theme.SURFACE, fg=Theme.MUTED)
             
-            # Oculta tab de video
-            self.video_tab.pack_forget()
-            
-            # Mostra navbar de imagens e a aba ativa
-            self.nav_frame.pack(fill="x", pady=(0, 10), after=self.env_frame)
-            self._select_tab(self.active_tab)
+            # Reconstrói a navbar para imagens e seleciona a primeira aba
+            self._rebuild_navbar(self.image_tabs, "grid")
             self.log_panel.write_log("Ambiente de Imagens ativo.", "accent")
         else:
-            # Atualiza botoes
+            # Atualiza botoes de ambiente
             self.env_img_btn.config(bg=Theme.SURFACE, fg=Theme.MUTED)
             self.env_vid_btn.config(bg=Theme.ACCENT, fg="#ffffff")
             
-            # Oculta navbar de imagens e abas de imagem
-            self.nav_frame.pack_forget()
-            for key, (tab_frame, _) in self.tabs.items():
-                tab_frame.pack_forget()
-                
-            # Mostra tab de video
-            self.video_tab.pack(fill="both", expand=True)
+            # Reconstrói a navbar para vídeos e seleciona a primeira aba
+            self._rebuild_navbar(self.video_tabs, "video_compress")
             self.log_panel.write_log("Ambiente de Vídeos ativo. Requer FFmpeg no sistema.", "accent")
 
     def _on_env_hover(self, btn, env: str, is_hover: bool) -> None:

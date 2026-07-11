@@ -10,11 +10,14 @@ class VideoProcessor:
     Controla a chamada assincrona ao FFmpeg para compressao e conversao de formatos,
     detectando automaticamente a presenca dos executaveis e calculando o progresso da tarefa.
     """
-    def __init__(self, log_fn, progress_fn, done_fn):
+    def __init__(self, log_fn, progress_fn, done_fn, status_fn=None):
         self.log_fn = log_fn
         self.progress_fn = progress_fn
         self.done_fn = done_fn
+        self.status_fn = status_fn
         self.current_process = None
+        self.current_index = 1
+        self.total_files = 1
 
     @staticmethod
     def check_ffmpeg() -> bool:
@@ -140,6 +143,8 @@ class VideoProcessor:
                 crf = "18"
             elif quality == "low":
                 crf = "28"
+            elif quality == "very_low":
+                crf = "32"
 
             cmd.extend([
                 "-c:v", "libx264",
@@ -159,6 +164,8 @@ class VideoProcessor:
                 crf = "20"
             elif quality == "low":
                 crf = "40"
+            elif quality == "very_low":
+                crf = "50"
 
             cmd.extend([
                 "-c:v", "libvpx-vp9",
@@ -193,8 +200,9 @@ class VideoProcessor:
             universal_newlines=True
         )
 
-        # Expressao regular para parsear o tempo processado na saida do FFmpeg
+        # Expressao regular para parsear o tempo processado e velocidade na saida do FFmpeg
         time_regex = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
+        speed_regex = re.compile(r"speed=\s*(\S+)")
 
         # Monitora a saida em tempo real
         while True:
@@ -203,13 +211,40 @@ class VideoProcessor:
                 break
             
             if line:
-                # Procura padrao de tempo na saida do FFmpeg para atualizar progresso
+                # Procura padrao de tempo e velocidade na saida do FFmpeg para atualizar progresso e status
                 match = time_regex.search(line)
+                match_speed = speed_regex.search(line)
+                
+                speed = ""
+                if match_speed:
+                    speed = match_speed.group(1).strip()
+                
                 if match and duration:
                     hours, minutes, seconds, centiseconds = map(int, match.groups())
                     elapsed = hours * 3600 + minutes * 60 + seconds + centiseconds / 100
                     pct = min(100.0, (elapsed / duration) * 100.0)
-                    self.progress_fn(pct)
+                    
+                    # Calcula o progresso global composto se for processamento em lote
+                    if self.total_files > 1:
+                        global_pct = ((self.current_index - 1) / self.total_files) * 100 + (pct / self.total_files)
+                        self.progress_fn(global_pct)
+                    else:
+                        self.progress_fn(pct)
+                        
+                    if self.status_fn:
+                        status_msg = f"Processando [{self.current_index}/{self.total_files}]: {video_path.name} ({pct:.1f}%)"
+                        if speed:
+                            status_msg += f" | Velocidade: {speed}"
+                        self.status_fn(status_msg)
+                elif match:
+                    # Caso nao seja possivel obter a duracao do video (ffprobe falhou)
+                    hours, minutes, seconds, centiseconds = map(int, match.groups())
+                    elapsed_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                    if self.status_fn:
+                        status_msg = f"Processando [{self.current_index}/{self.total_files}]: {video_path.name} ({elapsed_str} decorridos)"
+                        if speed:
+                            status_msg += f" | Velocidade: {speed}"
+                        self.status_fn(status_msg)
 
         # Verifica o codigo de retorno do processo
         return_code = self.current_process.wait()
@@ -241,12 +276,16 @@ class VideoProcessor:
             return
 
         total = len(video_files)
+        self.total_files = total
         self.log_fn(f"[INFO] {total} vídeo(s) encontrado(s). Iniciando processamento em lote para web...")
 
         errors = []
         for idx, vid_file in enumerate(video_files, start=1):
+            self.current_index = idx
             try:
                 self.log_fn(f" -> Processando [{idx}/{total}]: {vid_file.name}...")
+                if self.status_fn:
+                    self.status_fn(f"Iniciando [{idx}/{total}]: {vid_file.name}")
                 result = self.compress_video(
                     vid_file, output_path, format_ext, resolution, quality, remove_audio
                 )
@@ -281,8 +320,12 @@ class VideoProcessor:
             self.done_fn(success=False)
             return
 
+        self.total_files = 1
+        self.current_index = 1
         self.log_fn(f"[INFO] Iniciando compressão de vídeo unitária para: {vid_file.name}...")
         self.progress_fn(5)
+        if self.status_fn:
+            self.status_fn(f"Iniciando: {vid_file.name}")
 
         try:
             result = self.compress_video(

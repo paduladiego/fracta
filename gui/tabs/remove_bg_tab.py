@@ -7,10 +7,10 @@ from gui.widgets.folder_row import FolderRow
 from gui.widgets.file_row import FileRow
 from core.image_autocropper import ImageAutocropper
 
-class AutocropTab(tk.Frame):
+class RemoveBgTab(tk.Frame):
     """
-    Aba que implementa a interface e controle para a funcionalidade de Aparar Bordas (Autocrop).
-    Detecta e remove margens de cor solida ou transparentes ao redor da imagem.
+    Aba que implementa a interface e controle para a funcionalidade de Remover Fundo.
+    Detecta e transforma margens de cor sólida em transparência (salvando em PNG).
     """
     def __init__(self, parent, log_panel, progress_bar):
         super().__init__(parent, bg=Theme.CARD)
@@ -73,17 +73,17 @@ class AutocropTab(tk.Frame):
         # Define layout inicial com base no modo padrao (pasta)
         self._update_input_mode()
 
-        # 4. Painel de Configuracoes de Corte/Aparamento
+        # 4. Painel de Configuracoes de Remoção
         config_frame = tk.LabelFrame(
-            self.container, text=" Configurações do Corte ",
+            self.container, text=" Configurações de Remoção de Fundo ",
             font=Theme.FONT_BOLD, bg=Theme.CARD, fg=Theme.ACCENT,
             bd=1, relief="solid", padx=12, pady=10
         )
         config_frame.pack(fill="x", pady=10)
 
-        # Seletor de Tipo de Fundo a Aparar
+        # Seletor de Tipo de Fundo a Remover
         tk.Label(
-            config_frame, text="Fundo a aparar:",
+            config_frame, text="Fundo a Remover:",
             font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.MUTED
         ).grid(row=0, column=0, sticky="w", pady=6)
 
@@ -98,14 +98,6 @@ class AutocropTab(tk.Frame):
             activeforeground=Theme.TEXT, command=self._update_trim_mode_ui
         )
         self.radio_auto.pack(side="left", padx=(0, 10))
-
-        self.radio_trans = tk.Radiobutton(
-            trim_modes_frame, text="Apenas Transparência", variable=self.trim_mode_var,
-            value="transparency", font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT, command=self._update_trim_mode_ui
-        )
-        self.radio_trans.pack(side="left", padx=10)
 
         self.radio_color = tk.Radiobutton(
             trim_modes_frame, text="Cor Sólida Específica", variable=self.trim_mode_var,
@@ -128,7 +120,6 @@ class AutocropTab(tk.Frame):
         )
         self.color_entry.pack(side="left", padx=(0, 6))
         self.color_var.trace_add("write", self._on_color_hex_changed)
-
 
         self.color_preview = tk.Frame(self.color_input_frame, width=20, height=20, bg="#ffffff", bd=1, relief="solid")
         self.color_preview.pack(side="left")
@@ -194,7 +185,7 @@ class AutocropTab(tk.Frame):
         suffix_frame = tk.Frame(config_frame, bg=Theme.CARD)
         suffix_frame.grid(row=4, column=1, sticky="w", padx=10, pady=6)
 
-        self.suffix_var = tk.StringVar(value="-cropped")
+        self.suffix_var = tk.StringVar(value="-nobg")
         self.suffix_entry = tk.Entry(
             suffix_frame, textvariable=self.suffix_var, width=12,
             font=Theme.FONT_MAIN, bg=Theme.SURFACE, fg=Theme.TEXT,
@@ -204,17 +195,6 @@ class AutocropTab(tk.Frame):
         )
         self.suffix_entry.pack(side="left")
 
-        # Checkbox Remover Fundo
-        self.remove_bg_var = tk.BooleanVar(value=False)
-        self.remove_bg_check = tk.Checkbutton(
-            config_frame, text="Remover Fundo (Tornar Transparente)", variable=self.remove_bg_var,
-            font=Theme.FONT_LABEL, bg=Theme.CARD, fg=Theme.TEXT,
-            selectcolor=Theme.SURFACE, activebackground=Theme.CARD,
-            activeforeground=Theme.TEXT, command=self._update_preview
-        )
-        self.remove_bg_check.grid(row=5, column=0, columnspan=2, sticky="w", pady=6)
-
-        # Mensagem informativa abaixo das configuracoes
         # Mensagem informativa/preview dinâmico abaixo das configuracoes
         self.info_label = tk.Label(
             self.container, text="",
@@ -232,14 +212,13 @@ class AutocropTab(tk.Frame):
         # Atualiza a exibicao inicial dos elementos condicionais da UI
         self._update_trim_mode_ui()
 
-
         # 5. Botao de Executar
         self.action_frame = tk.Frame(self.container, bg=Theme.CARD)
         self.action_frame.pack(fill="x")
 
         self.run_btn = tk.Button(
             self.action_frame,
-            text="Aparar Bordas da Imagem",
+            text="Remover Fundo da Imagem",
             font=Theme.FONT_BOLD,
             bg=Theme.ACCENT, fg="#ffffff",
             activebackground=Theme.ACCENT_HOV,
@@ -253,7 +232,6 @@ class AutocropTab(tk.Frame):
         self.run_btn.bind("<Leave>", lambda _: self.run_btn.config(bg=Theme.ACCENT))
 
     def _update_input_mode(self) -> None:
-        """Altera a visibilidade dos seletores dependendo se e lote ou imagem unica."""
         self.input_folder_row.pack_forget()
         self.input_file_row.pack_forget()
         self.output_row.pack_forget()
@@ -266,19 +244,16 @@ class AutocropTab(tk.Frame):
         self.output_row.pack(fill="x", pady=6)
 
     def _on_folder_input_changed(self, *args) -> None:
-        """Define automaticamente uma pasta de saida sugerida ao mudar a entrada."""
         in_dir = self.input_folder_row.get()
         if in_dir and not self.output_row.get():
             self.output_row.set(str(Path(in_dir) / "output"))
 
     def _on_file_input_changed(self, *args) -> None:
-        """Define automaticamente uma pasta de saida sugerida ao mudar o arquivo."""
         in_file = self.input_file_row.get()
         if in_file and not self.output_row.get():
             self.output_row.set(str(Path(in_file).parent / "output"))
 
     def _update_trim_mode_ui(self) -> None:
-        """Mostra ou oculta o painel de cor customizada."""
         if self.trim_mode_var.get() == "color":
             self.color_input_frame.grid(row=1, column=1, sticky="w", padx=10, pady=2)
         else:
@@ -286,7 +261,6 @@ class AutocropTab(tk.Frame):
         self._update_preview()
 
     def _on_color_hex_changed(self, *args) -> None:
-        """Valida e atualiza a cor do quadrado de preview quando o hex e alterado."""
         hex_val = self.color_var.get().strip()
         if hex_val.startswith("#") and len(hex_val) in (4, 7):
             try:
@@ -301,7 +275,6 @@ class AutocropTab(tk.Frame):
         self._update_preview()
 
     def _update_preview(self) -> None:
-        """Atualiza a mensagem explicativa de preview em tempo real na aba de Autocrop."""
         try:
             mode = self.trim_mode_var.get()
             tol = self.tolerance_var.get()
@@ -309,21 +282,15 @@ class AutocropTab(tk.Frame):
             
             if mode == "auto":
                 desc = "automático (canto 0,0)"
-            elif mode == "transparency":
-                desc = "transparente"
             else:
                 desc = f"sólido {self.color_var.get()}"
-            
-            rem_bg = " + Transparente" if self.remove_bg_var.get() and mode != "transparency" else ""
                 
-            msg = f"-> Cortará o fundo {desc}{rem_bg} (tolerância: {tol}) | Compressão PNG: {comp}."
+            msg = f"-> Removerá o fundo {desc} (tolerância: {tol}) | Exportará em PNG ({comp})."
             self.info_label.config(text=msg, fg=Theme.SUCCESS)
         except Exception:
             self.info_label.config(text="", fg=Theme.MUTED)
 
-
-    def _start_processing(self, skip_crop=False) -> None:
-        """Inicia o processamento assincrono do autocrop em uma thread secundaria."""
+    def _start_processing(self) -> None:
         mode = self.mode_var.get()
         output_dir = self.output_row.get()
 
@@ -353,7 +320,6 @@ class AutocropTab(tk.Frame):
         trim_mode = self.trim_mode_var.get()
         custom_color_hex = self.color_var.get().strip()
         
-        # Valida formato hexadecimal se o modo for cor especifica
         if trim_mode == "color":
             if not custom_color_hex.startswith("#"):
                 custom_color_hex = f"#{custom_color_hex}"
@@ -364,36 +330,30 @@ class AutocropTab(tk.Frame):
         tolerance = self.tolerance_var.get()
         suffix_pattern = self.suffix_var.get().strip()
         png_compress_level = self.compress_var.get()
-        remove_background = self.remove_bg_var.get()
-        if skip_crop:
-            remove_background = True
 
-        # Desativa o botao durante a execucao e limpa paineis globais
         self.run_btn.config(state="disabled", text="Processando...")
         self.progress_bar.reset()
         self.log_panel.clear()
 
-        # Funcoes de manipulacao de logs e conclusao
         def log_handler(msg):
             self.after(0, lambda m=msg: self.log_panel.write_log(m))
 
         def completion_handler(success):
             def _ui_update():
-                self.run_btn.config(state="normal", text="Aparar Bordas da Imagem")
+                self.run_btn.config(state="normal", text="Remover Fundo da Imagem")
                 self.progress_bar.set_progress(100)
                 if success:
-                    messagebox.showinfo("Concluído", "Corte/Aparamento concluído com sucesso!")
+                    messagebox.showinfo("Concluído", "Remoção de fundo concluída com sucesso!")
             self.after(0, _ui_update)
 
-        # Instancia o processador ImageAutocropper
         cropper = ImageAutocropper(
             trim_mode=trim_mode,
             custom_color_hex=custom_color_hex,
             tolerance=tolerance,
             suffix_pattern=suffix_pattern,
             png_compress_level=png_compress_level,
-            remove_background=remove_background,
-            skip_crop=skip_crop,
+            remove_background=True,
+            skip_crop=True,
             log_fn=log_handler,
             progress_fn=self.progress_bar.set_progress,
             done_fn=completion_handler
@@ -401,7 +361,6 @@ class AutocropTab(tk.Frame):
 
         target_fn = getattr(cropper, target_method)
 
-        # Executa na thread secundaria para evitar travamento da GUI
         thread = threading.Thread(
             target=target_fn,
             args=(input_path, output_dir),
