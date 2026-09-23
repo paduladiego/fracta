@@ -39,8 +39,8 @@ class FractaApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f"Fracta v{APP_VERSION} — Image Grid & Resizer")
-        self.geometry("740x700")
-        self.minsize(650, 600)
+        self.geometry("900x720")
+        self.minsize(860, 650)
         self.configure(bg=Theme.BG)
         self.resizable(True, True)
         
